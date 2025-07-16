@@ -17,7 +17,13 @@ export class RabbitMQModule {
           imports: [ConfigModule],
           inject: [ConfigService],
           useFactory: async (configService: ConfigService) => {
-            const rabbitMqUrl = configService.get<string>('RABBITMQ_URL') || 'amqp://guest:guest@localhost:5672';
+            // Get the RabbitMQ URL from environment variables
+            const rabbitMqUrl = configService.get<string>('RABBITMQ_URL');
+            console.log(`Connecting to RabbitMQ at: ${rabbitMqUrl || 'default URL'}`); // Log the URL (without sensitive parts)
+            
+            if (!rabbitMqUrl) {
+              console.warn('RABBITMQ_URL not set. Using default localhost connection.');
+            }
             
             return {
               exchanges: [
@@ -30,7 +36,7 @@ export class RabbitMQModule {
                   type: 'fanout',
                 },
               ],
-              uri: rabbitMqUrl,
+              uri: rabbitMqUrl || 'amqp://guest:guest@localhost:5672',
               connectionInitOptions: { wait: true, timeout: 30000 },
               enableControllerDiscovery: true,
               defaultRpcTimeout: 15000,
