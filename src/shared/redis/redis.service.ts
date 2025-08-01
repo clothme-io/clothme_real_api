@@ -1,45 +1,54 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
 @Injectable()
-export class RedisService implements OnModuleInit, OnModuleDestroy {
+export class RedisService {
+
   private readonly logger = new Logger(RedisService.name);
   private redisClient: Redis;
 
   constructor(private readonly configService: ConfigService) {}
 
-  async onModuleInit() {
-    const redisUrl = this.configService.get<string>('REDIS_URL');
+  public createRedisClient(): Redis {
+
+    const redisUrlFromEnv = this.configService.get<string>('REDIS_URL');
+
+    const options = {
+      maxRetriesPerRequest: null,
+    };
+
+    const redis = new Redis(redisUrlFromEnv + '?family=0', options);
+
+    redis.on('error', (err) => {
+      console.error('Redis client error:', err);
+      // Depending on your app's needs, you might want to handle errors more gracefully,
+      // e.g., by attempting to reconnect or by flagging the service as unhealthy.
+    });
+
+    redis.on('connect', () => {
+      console.log('Successfully connected to Redis.');
+    });
+
+    redis.on('ready', () => {
+      console.log('Redis client is ready to use.');
+    });
+
+    redis.on('close', () => {
+      console.log('Connection to Redis closed.');
+    });
+
+    redis.on('reconnecting', (delay) => {
+      console.log(`Redis client reconnecting in ${delay}ms...`);
+    });
+
+    redis.on('end', () => {
+      console.log('Redis client connection has ended. No more reconnections will be attempted.');
+    });
     
-    if (!redisUrl) {
-      this.logger.warn('REDIS_URL not provided, using localhost:6379');
-    }
-    
-    this.redisClient = new Redis(redisUrl || 'redis://localhost:6379', {
-      maxRetriesPerRequest: 3,
-      enableReadyCheck: true,
-      retryStrategy: (times) => {
-        const delay = Math.min(times * 50, 2000);
-        this.logger.log(`Redis connection retry in ${delay}ms`);
-        return delay;
-      },
-    });
+    this.redisClient = redis;
 
-    this.redisClient.on('connect', () => {
-      this.logger.log('Redis client connected');
-    });
-
-    this.redisClient.on('error', (error) => {
-      this.logger.error(`Redis client error: ${error.message}`);
-    });
-  }
-
-  async onModuleDestroy() {
-    if (this.redisClient) {
-      await this.redisClient.quit();
-      this.logger.log('Redis client disconnected');
-    }
+    return redis;
   }
 
   /**
