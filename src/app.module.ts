@@ -15,7 +15,6 @@ import { RedisService } from './shared/redis/redis.service';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    
     // Shared modules
     RedisModule,
     BullModule.forRootAsync({
@@ -26,13 +25,12 @@ import { RedisService } from './shared/redis/redis.service';
     }),
     RabbitMQModule.forRoot(), // This registers the global RabbitMQ module
     AuthModule,
-    
     // Gateway modules
     InboxGatewayModule,
     // ChatGatewayModule,
     // PresenceGatewayModule,
   ],
   controllers: [AppController],
-  providers: [RedisService],
+  providers: [],
 })
 export class AppModule {}
