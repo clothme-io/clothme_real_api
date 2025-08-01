@@ -32,7 +32,11 @@ export class RabbitMQModule {
                   type: 'topic',
                 },
                 {
-                  name: 'clothme.notifications',
+                  name: 'clothme.notifications.direct',
+                  type: 'direct',
+                },
+                {
+                  name: 'clothme.notifications.fanout',
                   type: 'fanout',
                 },
               ],

@@ -83,7 +83,7 @@ export class InboxGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
           await this.redisService.setUserPresence(userId, 'offline');
           
           // Publish presence update to RabbitMQ
-          await this.rabbitMQService.publish('clothme.notifications', 'presence.update', {
+          await this.rabbitMQService.publish('clothme.notifications.direct', 'presence.update', {
             userId,
             status: 'offline',
           });
@@ -121,7 +121,7 @@ export class InboxGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
       await this.redisService.setUserPresence(userId, 'online');
       
       // Publish presence update to RabbitMQ
-      await this.rabbitMQService.publish('clothme.notifications', 'presence.update', {
+      await this.rabbitMQService.publish('clothme.notifications.direct', 'presence.update', {
         userId,
         status: 'online',
       });
@@ -152,7 +152,7 @@ export class InboxGateway implements OnGatewayInit, OnGatewayConnection, OnGatew
       const { userId, type, data: notificationData } = data;
       
       // Publish notification to RabbitMQ
-      await this.rabbitMQService.publish('clothme.notifications', 'inbox.notification', {
+      await this.rabbitMQService.publish('clothme.notifications.direct', 'inbox.notification', {
         userId,
         type,
         data: notificationData,
