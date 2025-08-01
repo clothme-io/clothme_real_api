@@ -33,6 +33,6 @@ import { RedisService } from './shared/redis/redis.service';
     // PresenceGatewayModule,
   ],
   controllers: [AppController],
-  providers: [],
+  providers: [RedisService],
 })
 export class AppModule {}
