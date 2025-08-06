@@ -15,7 +15,6 @@ import { RedisService } from './shared/redis/redis.service';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    // Shared modules
     RedisModule,
     BullModule.forRootAsync({
       useFactory: (redisService: RedisService) => ({
