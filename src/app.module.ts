@@ -17,9 +17,27 @@ import { RedisService } from './shared/redis/redis.service';
     }),
     RedisModule,
     BullModule.forRootAsync({
-      useFactory: (redisService: RedisService) => ({
-        connection: redisService.createRedisClient(),
-      }),
+      imports: [RedisModule],
+      useFactory: (redisService: RedisService) => {
+        try {
+          return {
+            connection: redisService.getClient(),
+            // Add additional BullMQ options for better reliability
+            defaultJobOptions: {
+              attempts: 3,
+              backoff: {
+                type: 'exponential',
+                delay: 1000,
+              },
+              removeOnComplete: true,
+              removeOnFail: false,
+            },
+          };
+        } catch (error) {
+          console.error('Failed to initialize BullMQ:', error);
+          throw error;
+        }
+      },
       inject: [RedisService],
     }),
     RabbitMQModule.forRoot(), // This registers the global RabbitMQ module
