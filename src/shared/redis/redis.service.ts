@@ -1,54 +1,81 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
 @Injectable()
-export class RedisService {
+export class RedisService implements OnModuleInit {
 
   private readonly logger = new Logger(RedisService.name);
   private redisClient: Redis;
 
   constructor(private readonly configService: ConfigService) {}
 
-  public createRedisClient(): Redis {
+  /**
+   * Initialize Redis client when the module is initialized
+   */
+  onModuleInit() {
+    this.initializeRedisClient();
+  }
 
+  /**
+   * Initialize the Redis client
+   */
+  private initializeRedisClient(): void {
     const redisUrlFromEnv = this.configService.get<string>('REDIS_URL');
+    if (!redisUrlFromEnv) {
+      this.logger.error('REDIS_URL environment variable is not defined');
+      throw new Error('REDIS_URL environment variable is not defined');
+    }
 
     const options = {
       maxRetriesPerRequest: null,
     };
 
-    const redis = new Redis(redisUrlFromEnv + '?family=0', options);
-
-    redis.on('error', (err) => {
-      console.error('Redis client error:', err);
-      // Depending on your app's needs, you might want to handle errors more gracefully,
-      // e.g., by attempting to reconnect or by flagging the service as unhealthy.
-    });
-
-    redis.on('connect', () => {
-      console.log('Successfully connected to Redis.');
-    });
-
-    redis.on('ready', () => {
-      console.log('Redis client is ready to use.');
-    });
-
-    redis.on('close', () => {
-      console.log('Connection to Redis closed.');
-    });
-
-    redis.on('reconnecting', (delay) => {
-      console.log(`Redis client reconnecting in ${delay}ms...`);
-    });
-
-    redis.on('end', () => {
-      console.log('Redis client connection has ended. No more reconnections will be attempted.');
-    });
+    this.logger.log('Initializing Redis client...');
     
-    this.redisClient = redis;
+    try {
+      const redis = new Redis(redisUrlFromEnv + '?family=0', options);
 
-    return redis;
+      redis.on('error', (err) => {
+        this.logger.error(`Redis client error: ${err.message}`, err.stack);
+      });
+
+      redis.on('connect', () => {
+        this.logger.log('Successfully connected to Redis.');
+      });
+
+      redis.on('ready', () => {
+        this.logger.log('Redis client is ready to use.');
+      });
+
+      redis.on('close', () => {
+        this.logger.log('Connection to Redis closed.');
+      });
+
+      redis.on('reconnecting', (delay) => {
+        this.logger.log(`Redis client reconnecting in ${delay}ms...`);
+      });
+
+      redis.on('end', () => {
+        this.logger.log('Redis client connection has ended. No more reconnections will be attempted.');
+      });
+      
+      this.redisClient = redis;
+    } catch (error) {
+      this.logger.error(`Failed to initialize Redis client: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Returns the existing Redis client or creates a new one if it doesn't exist
+   */
+  public createRedisClient(): Redis {
+    if (!this.redisClient) {
+      this.logger.log('Redis client not initialized, creating a new one');
+      this.initializeRedisClient();
+    }
+    return this.redisClient;
   }
 
   /**
